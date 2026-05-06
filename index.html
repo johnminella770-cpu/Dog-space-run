@@ -1,0 +1,1414 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Dog Space Run</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@300;500;700&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    overflow: hidden;
+    background: #04060f;
+    font-family: 'Rajdhani', sans-serif;
+    user-select: none;
+    -webkit-user-select: none;
+    touch-action: none;
+    cursor: none;
+  }
+
+  canvas { display: block; position: fixed; top: 0; left: 0; }
+
+  #hud {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    padding: 18px 28px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    z-index: 10;
+    pointer-events: none;
+  }
+
+  .hud-group { display: flex; align-items: center; gap: 28px; }
+
+  .hud-label {
+    font-family: 'Orbitron', monospace;
+    font-size: 10px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: rgba(120, 200, 255, 0.5);
+  }
+
+  .hud-value {
+    font-family: 'Orbitron', monospace;
+    font-size: 22px;
+    font-weight: 900;
+    color: #e0f0ff;
+    text-shadow: 0 0 20px rgba(100, 180, 255, 0.6);
+  }
+
+  #level-val { color: #ffd700; text-shadow: 0 0 20px rgba(255, 215, 0, 0.6); }
+
+  .overlay {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 20;
+    cursor: default;
+  }
+
+  #start-screen {
+    background: radial-gradient(ellipse at center, rgba(10,20,50,0.85) 0%, rgba(4,6,15,0.97) 70%);
+  }
+
+  #start-screen h1 {
+    font-family: 'Orbitron', monospace;
+    font-size: 42px;
+    font-weight: 900;
+    color: #fff;
+    letter-spacing: 6px;
+    text-shadow: 0 0 40px rgba(255, 180, 50, 0.8), 0 0 80px rgba(255, 140, 30, 0.4);
+    margin-bottom: 4px;
+  }
+
+  #start-screen .sub {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 16px;
+    letter-spacing: 8px;
+    text-transform: uppercase;
+    color: rgba(255, 210, 140, 0.6);
+    margin-bottom: 44px;
+  }
+
+  #start-screen .controls-hint {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 14px;
+    color: rgba(150, 200, 255, 0.45);
+    letter-spacing: 2px;
+    margin-bottom: 32px;
+    text-align: center;
+    line-height: 1.8;
+  }
+
+  .start-btn {
+    font-family: 'Orbitron', monospace;
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    color: #fff;
+    background: linear-gradient(135deg, rgba(255,160,30,0.25), rgba(255,100,50,0.25));
+    border: 1px solid rgba(255, 180, 80, 0.4);
+    padding: 14px 48px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    pointer-events: all;
+  }
+
+  .start-btn:hover {
+    background: linear-gradient(135deg, rgba(255,160,30,0.5), rgba(255,100,50,0.5));
+    border-color: rgba(255, 200, 100, 0.7);
+    box-shadow: 0 0 30px rgba(255, 150, 50, 0.3);
+    transform: scale(1.04);
+  }
+
+  .hidden { display: none !important; }
+
+  #game-over {
+    background: radial-gradient(ellipse at center, rgba(30,10,10,0.92) 0%, rgba(4,6,15,0.97) 70%);
+  }
+
+  #game-over h2 {
+    font-family: 'Orbitron', monospace;
+    font-size: 28px;
+    font-weight: 900;
+    color: #ff6060;
+    letter-spacing: 4px;
+    text-shadow: 0 0 30px rgba(255, 80, 80, 0.6);
+    margin-bottom: 6px;
+  }
+
+  #game-over .chomp-text {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 18px;
+    color: rgba(255,180,150,0.7);
+    letter-spacing: 2px;
+    margin-bottom: 20px;
+  }
+
+  #game-over .final-score {
+    font-family: 'Orbitron', monospace;
+    font-size: 44px;
+    font-weight: 900;
+    color: #fff;
+    text-shadow: 0 0 30px rgba(100, 180, 255, 0.6);
+    margin-bottom: 8px;
+  }
+
+  #game-over .final-level {
+    font-family: 'Orbitron', monospace;
+    font-size: 16px;
+    font-weight: 700;
+    color: #ffd700;
+    letter-spacing: 3px;
+    margin-bottom: 32px;
+  }
+
+  @media (max-width: 600px) {
+    #start-screen h1 { font-size: 26px; letter-spacing: 3px; }
+    #start-screen .sub { font-size: 11px; letter-spacing: 4px; }
+    .start-btn { font-size: 12px; padding: 12px 36px; }
+    .hud-value { font-size: 18px; }
+    .hud-label { font-size: 8px; }
+  }
+</style>
+</head>
+<body>
+
+<canvas id="game"></canvas>
+
+<div id="hud">
+  <div class="hud-group">
+    <div>
+      <div class="hud-label">Cash</div>
+      <div class="hud-value" id="score-val">$0.00</div>
+    </div>
+    <div>
+      <div class="hud-label">Level</div>
+      <div class="hud-value" id="level-val">1</div>
+    </div>
+  </div>
+  <div class="hud-group">
+    <div>
+      <div class="hud-label">Best</div>
+      <div class="hud-value" id="best-val">$0.00</div>
+    </div>
+  </div>
+</div>
+
+<div id="start-screen" class="overlay">
+  <h1>DOG SPACE RUN</h1>
+  <div class="sub">fetch the cash, dodge the dogs</div>
+  <div class="controls-hint">
+    Mouse to fly — touch &amp; drag on mobile<br>
+    Click or <span style="color:#f5deb3;">spacebar</span> to throw steaks at dogs<br>
+    Collect <span style="color:#4f4;">$</span> and <span style="color:#fd0;">$</span> — avoid the <span style="color:#f44;">tax</span> — don't get chomped!
+  </div>
+  <button class="start-btn" id="start-btn">Launch</button>
+</div>
+
+<div id="game-over" class="overlay hidden">
+  <h2>CHOMPED!</h2>
+  <div class="chomp-text" id="chomp-text">A corgi got you!</div>
+  <div class="final-score" id="final-score">$0.00</div>
+  <div class="final-level" id="final-level">LEVEL 1</div>
+  <button class="start-btn" id="restart-btn">Relaunch</button>
+</div>
+
+<script>
+const canvas = document.getElementById('game');
+const ctx = canvas.getContext('2d');
+
+let W, H;
+function resize() { W = canvas.width = window.innerWidth; H = canvas.height = window.innerHeight; }
+resize();
+window.addEventListener('resize', resize);
+
+// ===== AUDIO ENGINE =====
+let audioCtx = null;
+function ensureAudio() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+}
+
+function playChaChingSound() {
+  ensureAudio();
+  const now = audioCtx.currentTime;
+  // Short, bright cash register "ting"
+  [1800, 2400].forEach((freq, i) => {
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(freq, now + i * 0.06);
+    gain.gain.setValueAtTime(0.08, now + i * 0.06);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.06 + 0.15);
+    osc.connect(gain).connect(audioCtx.destination);
+    osc.start(now + i * 0.06);
+    osc.stop(now + i * 0.06 + 0.18);
+  });
+}
+
+function playTaxSound() {
+  ensureAudio();
+  const now = audioCtx.currentTime;
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  osc.type = 'sawtooth';
+  osc.frequency.setValueAtTime(220, now);
+  osc.frequency.linearRampToValueAtTime(120, now + 0.15);
+  gain.gain.setValueAtTime(0.06, now);
+  gain.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
+  osc.connect(gain).connect(audioCtx.destination);
+  osc.start(now);
+  osc.stop(now + 0.25);
+}
+
+function playChompSound() {
+  ensureAudio();
+  const now = audioCtx.currentTime;
+  // Low crunch
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  osc.type = 'square';
+  osc.frequency.setValueAtTime(180, now);
+  osc.frequency.linearRampToValueAtTime(60, now + 0.2);
+  gain.gain.setValueAtTime(0.12, now);
+  gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+  osc.connect(gain).connect(audioCtx.destination);
+  osc.start(now);
+  osc.stop(now + 0.35);
+  // Noise burst
+  const bufSize = audioCtx.sampleRate * 0.1;
+  const buf = audioCtx.createBuffer(1, bufSize, audioCtx.sampleRate);
+  const data = buf.getChannelData(0);
+  for (let i = 0; i < bufSize; i++) data[i] = (Math.random() * 2 - 1) * 0.5;
+  const noise = audioCtx.createBufferSource();
+  const ng = audioCtx.createGain();
+  noise.buffer = buf;
+  ng.gain.setValueAtTime(0.08, now);
+  ng.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+  noise.connect(ng).connect(audioCtx.destination);
+  noise.start(now);
+}
+
+function playLevelUpSound() {
+  ensureAudio();
+  const now = audioCtx.currentTime;
+  [600, 800, 1000, 1200].forEach((freq, i) => {
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(freq, now + i * 0.08);
+    gain.gain.setValueAtTime(0.06, now + i * 0.08);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.08 + 0.2);
+    osc.connect(gain).connect(audioCtx.destination);
+    osc.start(now + i * 0.08);
+    osc.stop(now + i * 0.08 + 0.25);
+  });
+}
+
+function playSteakThrowSound() {
+  ensureAudio();
+  const now = audioCtx.currentTime;
+  // Whoosh
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  osc.type = 'sine';
+  osc.frequency.setValueAtTime(400, now);
+  osc.frequency.exponentialRampToValueAtTime(800, now + 0.08);
+  osc.frequency.exponentialRampToValueAtTime(200, now + 0.15);
+  gain.gain.setValueAtTime(0.07, now);
+  gain.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
+  osc.connect(gain).connect(audioCtx.destination);
+  osc.start(now); osc.stop(now + 0.2);
+}
+
+function playDogEatSound() {
+  ensureAudio();
+  const now = audioCtx.currentTime;
+  // Happy chomp + whimper combo
+  [300, 500, 700].forEach((freq, i) => {
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(freq, now + i * 0.05);
+    gain.gain.setValueAtTime(0.06, now + i * 0.05);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.05 + 0.1);
+    osc.connect(gain).connect(audioCtx.destination);
+    osc.start(now + i * 0.05); osc.stop(now + i * 0.05 + 0.15);
+  });
+}
+
+// ===== STATE =====
+let running = false;
+let cash = 0;
+let best = 0;
+let level = 1;
+let levelThreshold = 20;
+let speed = 3;
+let frameCount = 0;
+let plane = { x: 0, y: 0, vx: 0, vy: 0, angle: 0, trail: [] };
+let target = { x: 0, y: 0, active: false };
+let cursorVisible = false;
+let steakCooldown = 0;
+const STEAK_COOLDOWN = 18; // frames between shots
+
+// Steaks (projectiles)
+let steaks = [];
+function shootSteak() {
+  if (!running || steakCooldown > 0) return;
+  steaks.push({
+    x: plane.x + 30,
+    y: plane.y,
+    vx: 10 + speed,
+    vy: plane.vy * 0.3,
+    rot: 0
+  });
+  steakCooldown = STEAK_COOLDOWN;
+  playSteakThrowSound();
+}
+
+// Popups
+let popups = [];
+function addPopup(x, y, text, color, size) {
+  popups.push({ x, y, text, color, size: size || 22, life: 1, maxLife: 1, duration: 12 });
+}
+
+// ===== INPUT =====
+canvas.addEventListener('mousemove', e => { target.x = e.clientX; target.y = e.clientY; target.active = true; cursorVisible = true; });
+canvas.addEventListener('mouseleave', () => { cursorVisible = false; });
+canvas.addEventListener('mouseenter', () => { cursorVisible = true; });
+
+// Mouse click to shoot
+canvas.addEventListener('mousedown', e => {
+  if (running) { shootSteak(); }
+});
+
+// Spacebar to shoot
+window.addEventListener('keydown', e => {
+  if (e.key === ' ' && running) {
+    e.preventDefault();
+    shootSteak();
+  }
+});
+
+function handleTouch(e) {
+  e.preventDefault();
+  const t = e.touches[0];
+  if (t) { target.x = t.clientX; target.y = t.clientY; target.active = true; }
+}
+canvas.addEventListener('touchstart', (e) => {
+  handleTouch(e);
+  if (running) shootSteak();
+}, { passive: false });
+canvas.addEventListener('touchmove', handleTouch, { passive: false });
+canvas.addEventListener('touchend', e => e.preventDefault(), { passive: false });
+
+// ===== STARS & NEBULAE =====
+const starLayers = [[], [], []];
+function initStars() {
+  starLayers.forEach((layer, i) => {
+    layer.length = 0;
+    const count = [120, 70, 30][i];
+    for (let j = 0; j < count; j++) layer.push({ x: Math.random() * W, y: Math.random() * H, r: [0.6, 1.2, 2.2][i] });
+  });
+}
+initStars();
+
+let nebulae = [];
+function initNebulae() {
+  nebulae = [];
+  for (let i = 0; i < 5; i++) {
+    nebulae.push({ x: Math.random() * W * 2, y: Math.random() * H, r: 100 + Math.random() * 200, hue: Math.random() * 60 + 200, alpha: 0.015 + Math.random() * 0.025 });
+  }
+}
+initNebulae();
+
+// ===== ENTITIES =====
+// Green $ ($5), Yellow $ ($10)
+let coins = [];
+function spawnCoin() {
+  const isGold = Math.random() < 0.3;
+  coins.push({
+    x: W + 20,
+    y: Math.random() * (H - 100) + 50,
+    r: isGold ? 12 : 10,
+    value: isGold ? 10 : 5,
+    color: isGold ? '#ffd700' : '#44ff66',
+    pulse: Math.random() * Math.PI * 2
+  });
+}
+
+// Red tax $ (-$3.50)
+let taxes = [];
+function spawnTax() {
+  taxes.push({
+    x: W + 30,
+    y: Math.random() * (H - 120) + 60,
+    r: 22,
+    pulse: Math.random() * Math.PI * 2
+  });
+}
+
+// Dogs (obstacles)
+// corgi = Bowser, pitbull = Future, cow-pitbull = Chipper
+let dogs = [];
+function spawnDog() {
+  const roll = Math.random();
+  let type;
+  if (roll < 0.35) type = 'corgi';
+  else if (roll < 0.7) type = 'pitbull';
+  else type = 'cow-pitbull';
+  const size = 28 + Math.random() * 16;
+  // Movement patterns: sine wave, diagonal, or zigzag
+  const patterns = ['sine', 'diagonal', 'zigzag'];
+  const pattern = patterns[Math.floor(Math.random() * patterns.length)];
+  const vyBase = (Math.random() - 0.5) * 2.5; // diagonal drift direction
+  dogs.push({
+    x: W + size + 10,
+    y: Math.random() * (H - 140) + 70,
+    r: size,
+    type: type,
+    bounce: Math.random() * Math.PI * 2,
+    chomping: false,
+    chompFrame: 0,
+    eating: false,
+    eatTimer: 0,
+    fleeing: false,
+    movePattern: pattern,
+    vyBase: vyBase,
+    sineAmp: 30 + Math.random() * 50,
+    sineSpeed: 0.02 + Math.random() * 0.03,
+    sinePhase: Math.random() * Math.PI * 2,
+    originY: 0 // set after push
+  });
+  dogs[dogs.length - 1].originY = dogs[dogs.length - 1].y;
+}
+
+let particles = [];
+function emitParticles(x, y, count, color, spread) {
+  for (let i = 0; i < count; i++) {
+    particles.push({
+      x, y,
+      vx: (Math.random() - 0.5) * spread,
+      vy: (Math.random() - 0.5) * spread,
+      life: 1, decay: 0.015 + Math.random() * 0.025,
+      r: 1 + Math.random() * 3, color
+    });
+  }
+}
+
+// ===== DRAWING =====
+function drawStars() {
+  const speeds = [0.3, 0.7, 1.4];
+  const alphas = [0.3, 0.5, 0.9];
+  const colors = ['#8ab4f8', '#c8d8f0', '#fff'];
+  starLayers.forEach((layer, i) => {
+    ctx.fillStyle = colors[i];
+    ctx.globalAlpha = alphas[i];
+    layer.forEach(s => {
+      s.x -= speeds[i] * speed;
+      if (s.x < -5) { s.x = W + 5; s.y = Math.random() * H; }
+      ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2); ctx.fill();
+    });
+  });
+  ctx.globalAlpha = 1;
+}
+
+function drawNebulae() {
+  nebulae.forEach(n => {
+    n.x -= 0.15 * speed;
+    if (n.x < -n.r * 2) { n.x = W + n.r * 2; n.y = Math.random() * H; n.hue = Math.random() * 60 + 200; }
+    const grad = ctx.createRadialGradient(n.x, n.y, 0, n.x, n.y, n.r);
+    grad.addColorStop(0, `hsla(${n.hue}, 80%, 60%, ${n.alpha})`);
+    grad.addColorStop(1, 'transparent');
+    ctx.fillStyle = grad;
+    ctx.fillRect(n.x - n.r, n.y - n.r, n.r * 2, n.r * 2);
+  });
+}
+
+function drawCursor() {
+  if (!cursorVisible || !target.active) return;
+  const g = ctx.createRadialGradient(target.x, target.y, 0, target.x, target.y, 18);
+  g.addColorStop(0, 'rgba(255,200,80,0.3)');
+  g.addColorStop(0.5, 'rgba(255,160,40,0.1)');
+  g.addColorStop(1, 'transparent');
+  ctx.fillStyle = g;
+  ctx.fillRect(target.x - 18, target.y - 18, 36, 36);
+  ctx.beginPath(); ctx.arc(target.x, target.y, 3, 0, Math.PI * 2);
+  ctx.fillStyle = 'rgba(255,220,120,0.6)'; ctx.fill();
+  ctx.beginPath(); ctx.arc(target.x, target.y, 12, 0, Math.PI * 2);
+  ctx.strokeStyle = 'rgba(255,180,60,0.25)'; ctx.lineWidth = 1; ctx.stroke();
+}
+
+function drawPlane() {
+  const { x, y, angle } = plane;
+  const glowSize = 28 + Math.abs(plane.vx) * 2;
+  const gg = ctx.createRadialGradient(x - 18, y, 0, x - 18, y, glowSize);
+  gg.addColorStop(0, 'rgba(100,180,255,0.35)');
+  gg.addColorStop(0.5, 'rgba(60,120,255,0.1)');
+  gg.addColorStop(1, 'transparent');
+  ctx.fillStyle = gg;
+  ctx.fillRect(x - 18 - glowSize, y - glowSize, glowSize * 2, glowSize * 2);
+
+  ctx.save(); ctx.translate(x, y); ctx.rotate(angle);
+  ctx.beginPath();
+  ctx.moveTo(28, 0); ctx.lineTo(-18, -16); ctx.lineTo(-8, -2);
+  ctx.lineTo(-22, -1); ctx.lineTo(-22, 1); ctx.lineTo(-8, 2); ctx.lineTo(-18, 16);
+  ctx.closePath();
+  const pg = ctx.createLinearGradient(-20, -16, 10, 16);
+  pg.addColorStop(0, '#e8f0ff'); pg.addColorStop(0.45, '#ffffff');
+  pg.addColorStop(0.55, '#c8d8ee'); pg.addColorStop(1, '#9ab4d8');
+  ctx.fillStyle = pg; ctx.fill();
+  ctx.beginPath(); ctx.moveTo(28, 0); ctx.lineTo(-22, 0);
+  ctx.strokeStyle = 'rgba(100,140,200,0.5)'; ctx.lineWidth = 1; ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(28, 0); ctx.lineTo(-18, -16);
+  ctx.strokeStyle = 'rgba(200,225,255,0.7)'; ctx.lineWidth = 0.8; ctx.stroke();
+  ctx.restore();
+}
+
+function drawTrail() {
+  if (plane.trail.length < 2) return;
+  for (let i = 1; i < plane.trail.length; i++) {
+    const t = i / plane.trail.length;
+    ctx.beginPath();
+    ctx.moveTo(plane.trail[i - 1].x, plane.trail[i - 1].y);
+    ctx.lineTo(plane.trail[i].x, plane.trail[i].y);
+    ctx.strokeStyle = `rgba(100,180,255,${t * 0.35})`;
+    ctx.lineWidth = t * 3; ctx.stroke();
+  }
+}
+
+function drawDollarSign(x, y, size, color, rotation) {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(rotation || 0);
+  ctx.font = `bold ${size}px Orbitron, monospace`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillStyle = color;
+  ctx.shadowColor = color;
+  ctx.shadowBlur = 12;
+  ctx.fillText('$', 0, 0);
+  ctx.shadowBlur = 0;
+  ctx.restore();
+}
+
+function drawCoins() {
+  coins.forEach(c => {
+    c.pulse += 0.05;
+    const s = 1 + Math.sin(c.pulse) * 0.15;
+    const glow = ctx.createRadialGradient(c.x, c.y, 0, c.x, c.y, c.r * 2.5);
+    glow.addColorStop(0, c.value === 10 ? 'rgba(255,215,0,0.25)' : 'rgba(68,255,102,0.25)');
+    glow.addColorStop(1, 'transparent');
+    ctx.fillStyle = glow;
+    ctx.fillRect(c.x - c.r * 2.5, c.y - c.r * 2.5, c.r * 5, c.r * 5);
+    drawDollarSign(c.x, c.y, c.r * 2 * s, c.color);
+  });
+}
+
+function drawTaxes() {
+  taxes.forEach(t => {
+    t.pulse += 0.04;
+    const s = 1 + Math.sin(t.pulse) * 0.1;
+    // Red warning glow
+    const glow = ctx.createRadialGradient(t.x, t.y, 0, t.x, t.y, t.r * 2.5);
+    glow.addColorStop(0, 'rgba(255,50,50,0.2)');
+    glow.addColorStop(1, 'transparent');
+    ctx.fillStyle = glow;
+    ctx.fillRect(t.x - t.r * 2.5, t.y - t.r * 2.5, t.r * 5, t.r * 5);
+    drawDollarSign(t.x, t.y, t.r * 2 * s, '#ff3333', Math.sin(t.pulse * 2) * 0.15);
+  });
+}
+
+// ===== DOG DRAWING =====
+function drawCorgi(x, y, r, chomping) {
+  ctx.save();
+  ctx.translate(x, y);
+  const s = r / 28;
+
+  // Body — long low rectangle, orange
+  ctx.fillStyle = '#e8923a';
+  ctx.beginPath();
+  ctx.ellipse(0, 4 * s, 26 * s, 16 * s, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  // White belly
+  ctx.fillStyle = '#fff5e0';
+  ctx.beginPath();
+  ctx.ellipse(0, 10 * s, 20 * s, 8 * s, 0, 0, Math.PI);
+  ctx.fill();
+
+  // Legs (4 tiny stubs)
+  ctx.fillStyle = '#e8923a';
+  [[-16, 14], [-8, 16], [8, 16], [16, 14]].forEach(([lx, ly]) => {
+    ctx.fillRect(lx * s - 3 * s, ly * s, 6 * s, 8 * s);
+  });
+
+  // White paws
+  ctx.fillStyle = '#fff';
+  [[-16, 20], [-8, 22], [8, 22], [16, 20]].forEach(([lx, ly]) => {
+    ctx.fillRect(lx * s - 3.5 * s, ly * s, 7 * s, 3 * s);
+  });
+
+  // Head
+  ctx.fillStyle = '#e8923a';
+  ctx.beginPath();
+  ctx.arc(-22 * s, -4 * s, 14 * s, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Face white stripe
+  ctx.fillStyle = '#fff5e0';
+  ctx.beginPath();
+  ctx.moveTo(-26 * s, -14 * s);
+  ctx.lineTo(-22 * s, 6 * s);
+  ctx.lineTo(-18 * s, -14 * s);
+  ctx.closePath();
+  ctx.fill();
+
+  // Ears (big triangles — corgi!)
+  ctx.fillStyle = '#d47a20';
+  [[-30, -14], [-14, -14]].forEach(([ex, ey]) => {
+    ctx.beginPath();
+    ctx.moveTo(ex * s, ey * s);
+    ctx.lineTo((ex + 4) * s, (ey - 16) * s);
+    ctx.lineTo((ex + 8) * s, ey * s);
+    ctx.closePath();
+    ctx.fill();
+  });
+
+  // Inner ears
+  ctx.fillStyle = '#ffb8c6';
+  [[-29, -14], [-13, -14]].forEach(([ex, ey]) => {
+    ctx.beginPath();
+    ctx.moveTo((ex + 1) * s, ey * s);
+    ctx.lineTo((ex + 4) * s, (ey - 10) * s);
+    ctx.lineTo((ex + 7) * s, ey * s);
+    ctx.closePath();
+    ctx.fill();
+  });
+
+  // Eyes
+  ctx.fillStyle = '#1a1a2e';
+  ctx.beginPath(); ctx.arc(-26 * s, -6 * s, 2.5 * s, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.arc(-18 * s, -6 * s, 2.5 * s, 0, Math.PI * 2); ctx.fill();
+
+  // Eye shine
+  ctx.fillStyle = '#fff';
+  ctx.beginPath(); ctx.arc(-25.5 * s, -7 * s, 1 * s, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.arc(-17.5 * s, -7 * s, 1 * s, 0, Math.PI * 2); ctx.fill();
+
+  // Nose
+  ctx.fillStyle = '#222';
+  ctx.beginPath(); ctx.arc(-22 * s, 0 * s, 3 * s, 0, Math.PI * 2); ctx.fill();
+
+  // Mouth / chomp
+  if (chomping) {
+    // Open mouth
+    ctx.fillStyle = '#ff4466';
+    ctx.beginPath();
+    ctx.arc(-22 * s, 4 * s, 8 * s, 0, Math.PI);
+    ctx.fill();
+    // Teeth
+    ctx.fillStyle = '#fff';
+    for (let i = -5; i <= 5; i += 2.5) {
+      ctx.beginPath();
+      ctx.moveTo((-22 + i - 1) * s, 4 * s);
+      ctx.lineTo((-22 + i) * s, 8 * s);
+      ctx.lineTo((-22 + i + 1) * s, 4 * s);
+      ctx.closePath();
+      ctx.fill();
+    }
+  } else {
+    ctx.strokeStyle = '#1a1a2e';
+    ctx.lineWidth = 1.5 * s;
+    ctx.beginPath();
+    ctx.arc(-22 * s, 1 * s, 4 * s, 0.1, Math.PI - 0.1);
+    ctx.stroke();
+  }
+
+  // Butt / tail (little nub)
+  ctx.fillStyle = '#e8923a';
+  ctx.beginPath();
+  ctx.arc(26 * s, -2 * s, 5 * s, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.restore();
+}
+
+function drawPitbull(x, y, r, chomping) {
+  ctx.save();
+  ctx.translate(x, y);
+  const s = r / 28;
+
+  // Body — stocky, muscular
+  ctx.fillStyle = '#8a8a9a';
+  ctx.beginPath();
+  ctx.ellipse(0, 2 * s, 24 * s, 18 * s, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Chest white patch
+  ctx.fillStyle = '#d0d0dd';
+  ctx.beginPath();
+  ctx.ellipse(-8 * s, 8 * s, 10 * s, 8 * s, 0, 0, Math.PI);
+  ctx.fill();
+
+  // Legs — thicker than corgi
+  ctx.fillStyle = '#8a8a9a';
+  [[-14, 14], [-6, 16], [6, 16], [14, 14]].forEach(([lx, ly]) => {
+    ctx.fillRect(lx * s - 4 * s, ly * s, 8 * s, 10 * s);
+  });
+
+  // Paws
+  ctx.fillStyle = '#d0d0dd';
+  [[-14, 22], [-6, 24], [6, 24], [14, 22]].forEach(([lx, ly]) => {
+    ctx.beginPath(); ctx.arc(lx * s, ly * s, 4.5 * s, 0, Math.PI * 2); ctx.fill();
+  });
+
+  // Head — broad and blocky
+  ctx.fillStyle = '#7a7a8a';
+  ctx.beginPath();
+  ctx.moveTo(-36 * s, -12 * s);
+  ctx.quadraticCurveTo(-40 * s, 2 * s, -34 * s, 10 * s);
+  ctx.lineTo(-10 * s, 10 * s);
+  ctx.quadraticCurveTo(-6 * s, 2 * s, -10 * s, -12 * s);
+  ctx.closePath();
+  ctx.fill();
+
+  // Snout lighter
+  ctx.fillStyle = '#a0a0b0';
+  ctx.beginPath();
+  ctx.ellipse(-23 * s, 4 * s, 10 * s, 7 * s, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Ears (folded)
+  ctx.fillStyle = '#6a6a7a';
+  [[-34, -12], [-12, -12]].forEach(([ex, ey]) => {
+    ctx.beginPath();
+    ctx.moveTo(ex * s, ey * s);
+    ctx.quadraticCurveTo((ex + 3) * s, (ey - 12) * s, (ex + 8) * s, (ey - 2) * s);
+    ctx.closePath();
+    ctx.fill();
+  });
+
+  // Eyes — soulful
+  ctx.fillStyle = '#1a1a2e';
+  ctx.beginPath(); ctx.arc(-29 * s, -4 * s, 3 * s, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.arc(-17 * s, -4 * s, 3 * s, 0, Math.PI * 2); ctx.fill();
+
+  // Eye shine
+  ctx.fillStyle = '#aac';
+  ctx.beginPath(); ctx.arc(-28 * s, -5.5 * s, 1.2 * s, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.arc(-16 * s, -5.5 * s, 1.2 * s, 0, Math.PI * 2); ctx.fill();
+
+  // Nose
+  ctx.fillStyle = '#333';
+  ctx.beginPath();
+  ctx.ellipse(-23 * s, 1 * s, 4 * s, 3 * s, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Mouth / chomp
+  if (chomping) {
+    ctx.fillStyle = '#ff3355';
+    ctx.beginPath();
+    ctx.arc(-23 * s, 7 * s, 9 * s, 0, Math.PI);
+    ctx.fill();
+    ctx.fillStyle = '#fff';
+    for (let i = -6; i <= 6; i += 3) {
+      ctx.beginPath();
+      ctx.moveTo((-23 + i - 1.5) * s, 7 * s);
+      ctx.lineTo((-23 + i) * s, 12 * s);
+      ctx.lineTo((-23 + i + 1.5) * s, 7 * s);
+      ctx.closePath();
+      ctx.fill();
+    }
+  } else {
+    ctx.strokeStyle = '#333';
+    ctx.lineWidth = 1.5 * s;
+    ctx.beginPath();
+    ctx.arc(-23 * s, 4 * s, 5 * s, 0.1, Math.PI - 0.1);
+    ctx.stroke();
+  }
+
+  // Tail — short and wagging
+  const wag = Math.sin(Date.now() * 0.01) * 0.3;
+  ctx.save();
+  ctx.translate(24 * s, -6 * s);
+  ctx.rotate(-0.5 + wag);
+  ctx.fillStyle = '#8a8a9a';
+  ctx.beginPath();
+  ctx.moveTo(0, 0);
+  ctx.lineTo(4 * s, -14 * s);
+  ctx.lineTo(-2 * s, -12 * s);
+  ctx.closePath();
+  ctx.fill();
+  ctx.restore();
+
+  ctx.restore();
+}
+
+function drawCowPitbull(x, y, r, chomping) {
+  ctx.save();
+  ctx.translate(x, y);
+  const s = r / 28;
+
+  // Body — white base with black patches (cow pattern)
+  ctx.fillStyle = '#f0ece4';
+  ctx.beginPath();
+  ctx.ellipse(0, 2 * s, 24 * s, 18 * s, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Cow spots on body
+  ctx.fillStyle = '#1a1a1a';
+  ctx.beginPath(); ctx.ellipse(-8 * s, -4 * s, 9 * s, 7 * s, 0.3, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(10 * s, 6 * s, 7 * s, 6 * s, -0.4, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(2 * s, 12 * s, 5 * s, 4 * s, 0.2, 0, Math.PI * 2); ctx.fill();
+
+  // Pink belly
+  ctx.fillStyle = '#fcd0d0';
+  ctx.beginPath();
+  ctx.ellipse(-4 * s, 14 * s, 12 * s, 5 * s, 0, 0, Math.PI);
+  ctx.fill();
+
+  // Legs — thicker
+  ctx.fillStyle = '#f0ece4';
+  [[-14, 14], [-6, 16], [6, 16], [14, 14]].forEach(([lx, ly]) => {
+    ctx.fillRect(lx * s - 4 * s, ly * s, 8 * s, 10 * s);
+  });
+  // Black patches on some legs
+  ctx.fillStyle = '#1a1a1a';
+  ctx.fillRect(-14 * s - 4 * s, 14 * s, 8 * s, 10 * s);
+  ctx.fillRect(6 * s - 4 * s, 16 * s, 8 * s, 10 * s);
+
+  // Paws
+  ctx.fillStyle = '#e0dcd4';
+  [[-14, 22], [-6, 24], [6, 24], [14, 22]].forEach(([lx, ly]) => {
+    ctx.beginPath(); ctx.arc(lx * s, ly * s, 4.5 * s, 0, Math.PI * 2); ctx.fill();
+  });
+
+  // Head — broad and blocky, white with black patch over one eye
+  ctx.fillStyle = '#f0ece4';
+  ctx.beginPath();
+  ctx.moveTo(-36 * s, -12 * s);
+  ctx.quadraticCurveTo(-40 * s, 2 * s, -34 * s, 10 * s);
+  ctx.lineTo(-10 * s, 10 * s);
+  ctx.quadraticCurveTo(-6 * s, 2 * s, -10 * s, -12 * s);
+  ctx.closePath();
+  ctx.fill();
+
+  // Black patch over left eye
+  ctx.fillStyle = '#1a1a1a';
+  ctx.beginPath();
+  ctx.ellipse(-30 * s, -6 * s, 8 * s, 7 * s, 0.2, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Snout — pinkish
+  ctx.fillStyle = '#fcc8c8';
+  ctx.beginPath();
+  ctx.ellipse(-23 * s, 4 * s, 10 * s, 7 * s, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Ears (folded, one black one white)
+  ctx.fillStyle = '#1a1a1a';
+  ctx.beginPath();
+  ctx.moveTo(-34 * s, -12 * s);
+  ctx.quadraticCurveTo(-31 * s, -24 * s, -26 * s, -14 * s);
+  ctx.closePath();
+  ctx.fill();
+  ctx.fillStyle = '#f0ece4';
+  ctx.beginPath();
+  ctx.moveTo(-12 * s, -12 * s);
+  ctx.quadraticCurveTo(-9 * s, -24 * s, -4 * s, -14 * s);
+  ctx.closePath();
+  ctx.fill();
+
+  // Eyes — one in black patch (white eye), one normal
+  ctx.fillStyle = '#fff';
+  ctx.beginPath(); ctx.arc(-29 * s, -5 * s, 3.2 * s, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = '#1a1a2e';
+  ctx.beginPath(); ctx.arc(-29 * s, -4.5 * s, 2 * s, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = '#1a1a2e';
+  ctx.beginPath(); ctx.arc(-17 * s, -4 * s, 3 * s, 0, Math.PI * 2); ctx.fill();
+
+  // Eye shines
+  ctx.fillStyle = '#cce';
+  ctx.beginPath(); ctx.arc(-28.5 * s, -6 * s, 1 * s, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = '#aac';
+  ctx.beginPath(); ctx.arc(-16 * s, -5.5 * s, 1.2 * s, 0, Math.PI * 2); ctx.fill();
+
+  // Nose
+  ctx.fillStyle = '#ff9999';
+  ctx.beginPath();
+  ctx.ellipse(-23 * s, 1 * s, 4 * s, 3 * s, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Mouth / chomp
+  if (chomping) {
+    ctx.fillStyle = '#ff3355';
+    ctx.beginPath();
+    ctx.arc(-23 * s, 7 * s, 9 * s, 0, Math.PI);
+    ctx.fill();
+    ctx.fillStyle = '#fff';
+    for (let i = -6; i <= 6; i += 3) {
+      ctx.beginPath();
+      ctx.moveTo((-23 + i - 1.5) * s, 7 * s);
+      ctx.lineTo((-23 + i) * s, 12 * s);
+      ctx.lineTo((-23 + i + 1.5) * s, 7 * s);
+      ctx.closePath();
+      ctx.fill();
+    }
+  } else {
+    ctx.strokeStyle = '#333';
+    ctx.lineWidth = 1.5 * s;
+    ctx.beginPath();
+    ctx.arc(-23 * s, 4 * s, 5 * s, 0.1, Math.PI - 0.1);
+    ctx.stroke();
+  }
+
+  // Tail — short, wagging, with a black tip
+  const wag = Math.sin(Date.now() * 0.012) * 0.35;
+  ctx.save();
+  ctx.translate(24 * s, -6 * s);
+  ctx.rotate(-0.5 + wag);
+  ctx.fillStyle = '#f0ece4';
+  ctx.beginPath();
+  ctx.moveTo(0, 0);
+  ctx.lineTo(4 * s, -14 * s);
+  ctx.lineTo(-2 * s, -12 * s);
+  ctx.closePath();
+  ctx.fill();
+  // Black tip
+  ctx.fillStyle = '#1a1a1a';
+  ctx.beginPath();
+  ctx.arc(2 * s, -13 * s, 3 * s, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+
+  ctx.restore();
+}
+
+function drawDogs() {
+  dogs.forEach(d => {
+    d.bounce += 0.04;
+    const bobY = Math.sin(d.bounce) * 3;
+    if (d.type === 'corgi') {
+      drawCorgi(d.x, d.y + bobY, d.r, d.chomping);
+    } else if (d.type === 'cow-pitbull') {
+      drawCowPitbull(d.x, d.y + bobY, d.r, d.chomping);
+    } else {
+      drawPitbull(d.x, d.y + bobY, d.r, d.chomping);
+    }
+  });
+}
+
+function drawSteaks() {
+  steaks.forEach(s => {
+    ctx.save();
+    ctx.translate(s.x, s.y);
+    ctx.rotate(s.rot);
+    const sz = 16;
+
+    // === T-BONE STEAK ===
+
+    // Main meat body — irregular steak shape
+    ctx.beginPath();
+    ctx.moveTo(-sz * 0.9, -sz * 0.1);
+    ctx.quadraticCurveTo(-sz * 1.0, -sz * 0.6, -sz * 0.5, -sz * 0.75);
+    ctx.quadraticCurveTo(0, -sz * 0.85, sz * 0.5, -sz * 0.7);
+    ctx.quadraticCurveTo(sz * 0.95, -sz * 0.5, sz * 0.9, 0);
+    ctx.quadraticCurveTo(sz * 0.95, sz * 0.5, sz * 0.5, sz * 0.7);
+    ctx.quadraticCurveTo(0, sz * 0.85, -sz * 0.5, sz * 0.75);
+    ctx.quadraticCurveTo(-sz * 1.0, sz * 0.6, -sz * 0.9, -sz * 0.1);
+    ctx.closePath();
+    ctx.fillStyle = '#b5332a';
+    ctx.fill();
+
+    // Top loin section (strip side — darker)
+    ctx.beginPath();
+    ctx.moveTo(-sz * 0.15, -sz * 0.1);
+    ctx.quadraticCurveTo(-sz * 0.4, -sz * 0.55, -sz * 0.5, -sz * 0.7);
+    ctx.quadraticCurveTo(0, -sz * 0.8, sz * 0.5, -sz * 0.65);
+    ctx.quadraticCurveTo(sz * 0.7, -sz * 0.4, sz * 0.2, -sz * 0.1);
+    ctx.closePath();
+    ctx.fillStyle = '#a02820';
+    ctx.fill();
+
+    // Bottom tenderloin section (filet side — pinker, smaller)
+    ctx.beginPath();
+    ctx.moveTo(-sz * 0.1, sz * 0.15);
+    ctx.quadraticCurveTo(-sz * 0.25, sz * 0.5, -sz * 0.15, sz * 0.6);
+    ctx.quadraticCurveTo(sz * 0.1, sz * 0.7, sz * 0.3, sz * 0.55);
+    ctx.quadraticCurveTo(sz * 0.4, sz * 0.35, sz * 0.15, sz * 0.15);
+    ctx.closePath();
+    ctx.fillStyle = '#d45050';
+    ctx.fill();
+
+    // T-Bone — vertical shaft
+    ctx.fillStyle = '#f5edd6';
+    ctx.strokeStyle = '#d4c9a8';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(-sz * 0.08, -sz * 0.55);
+    ctx.lineTo(sz * 0.08, -sz * 0.55);
+    ctx.lineTo(sz * 0.06, sz * 0.5);
+    ctx.lineTo(-sz * 0.06, sz * 0.5);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+
+    // T-Bone — horizontal cross bar
+    ctx.beginPath();
+    ctx.moveTo(-sz * 0.4, -sz * 0.08);
+    ctx.lineTo(sz * 0.35, -sz * 0.08);
+    ctx.lineTo(sz * 0.32, sz * 0.06);
+    ctx.lineTo(-sz * 0.38, sz * 0.06);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+
+    // Marbling streaks on strip side
+    ctx.strokeStyle = 'rgba(255,200,180,0.4)';
+    ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(-sz * 0.3, -sz * 0.35); ctx.quadraticCurveTo(0, -sz * 0.5, sz * 0.3, -sz * 0.35); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(-sz * 0.2, -sz * 0.25); ctx.quadraticCurveTo(sz * 0.1, -sz * 0.4, sz * 0.35, -sz * 0.22); ctx.stroke();
+
+    // Fat rim along left edge
+    ctx.beginPath();
+    ctx.moveTo(-sz * 0.85, -sz * 0.05);
+    ctx.quadraticCurveTo(-sz * 1.05, -sz * 0.5, -sz * 0.55, -sz * 0.7);
+    ctx.strokeStyle = '#f5deb3';
+    ctx.lineWidth = 3;
+    ctx.stroke();
+
+    // Grill marks
+    ctx.strokeStyle = 'rgba(60,15,5,0.35)';
+    ctx.lineWidth = 1.5;
+    for (let i = -1; i <= 1; i++) {
+      ctx.beginPath();
+      ctx.moveTo(-sz * 0.55, -sz * 0.3 + i * sz * 0.25);
+      ctx.lineTo(sz * 0.55, -sz * 0.35 + i * sz * 0.25);
+      ctx.stroke();
+    }
+
+    // Glow trail
+    ctx.restore();
+    const glow = ctx.createRadialGradient(s.x - 8, s.y, 0, s.x - 8, s.y, 18);
+    glow.addColorStop(0, 'rgba(255,140,40,0.25)');
+    glow.addColorStop(1, 'transparent');
+    ctx.fillStyle = glow;
+    ctx.fillRect(s.x - 26, s.y - 18, 36, 36);
+  });
+}
+
+function drawParticles() {
+  particles.forEach(p => {
+    ctx.globalAlpha = p.life;
+    ctx.beginPath(); ctx.arc(p.x, p.y, p.r * p.life, 0, Math.PI * 2);
+    ctx.fillStyle = p.color; ctx.fill();
+  });
+  ctx.globalAlpha = 1;
+}
+
+function drawPopups() {
+  popups.forEach(p => {
+    const alpha = p.life;
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.font = `bold ${p.size}px Orbitron, monospace`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = p.color;
+    ctx.shadowColor = p.color;
+    ctx.shadowBlur = 10;
+    ctx.fillText(p.text, p.x, p.y - (1 - p.life) * 30);
+    ctx.shadowBlur = 0;
+    ctx.restore();
+  });
+}
+
+function drawTether() {
+  if (!target.active || !running) return;
+  const dx = target.x - plane.x;
+  const dy = target.y - plane.y;
+  const dist = Math.sqrt(dx * dx + dy * dy);
+  if (dist < 30) return;
+  ctx.beginPath();
+  ctx.moveTo(plane.x, plane.y);
+  ctx.lineTo(target.x, target.y);
+  ctx.strokeStyle = `rgba(255,200,80,${Math.min(0.12, dist * 0.0004)})`;
+  ctx.lineWidth = 0.5;
+  ctx.setLineDash([4, 8]); ctx.stroke(); ctx.setLineDash([]);
+}
+
+// ===== LEVEL SYSTEM =====
+// Progressive: Level 2 at $20, Level 3 at $50, Level 4 at $90... Max level 50
+function checkLevel() {
+  if (level >= 50) return; // Max level
+  const nextThreshold = levelThreshold;
+  if (cash >= nextThreshold) {
+    level++;
+    levelThreshold += 20 + (level - 1) * 10;
+    document.getElementById('level-val').textContent = level;
+    addPopup(W / 2, H / 2, level >= 50 ? 'MAX LEVEL!' : `LEVEL ${level}!`, '#ffd700', 36);
+    playLevelUpSound();
+  }
+}
+
+// ===== GAME LOGIC =====
+function resetGame() {
+  plane.x = W * 0.25; plane.y = H / 2;
+  plane.vx = 0; plane.vy = 0; plane.angle = 0; plane.trail = [];
+  target.x = plane.x + 60; target.y = plane.y; target.active = false;
+  coins = []; taxes = []; dogs = []; steaks = []; particles = []; popups = [];
+  cash = 0; level = 1; levelThreshold = 20;
+  speed = 4.5; frameCount = 0; steakCooldown = 0;
+  document.getElementById('score-val').textContent = '$0.00';
+  document.getElementById('level-val').textContent = '1';
+}
+
+let chompTimer = 0;
+let chompDog = null;
+
+function update() {
+  // Chomp animation freeze
+  if (chompTimer > 0) {
+    chompTimer--;
+    // Draw the chomping dog over the plane position
+    if (chompTimer <= 0) {
+      running = false;
+      if (cash > best) best = cash;
+      document.getElementById('best-val').textContent = '$' + best.toFixed(2);
+      document.getElementById('final-score').textContent = '$' + cash.toFixed(2);
+      document.getElementById('final-level').textContent = 'LEVEL ' + level;
+      document.getElementById('chomp-text').textContent =
+        chompDog === 'corgi' ? 'You have been herded by Bowser!' :
+        chompDog === 'cow-pitbull' ? 'You have been bitten by Chipper!' :
+        'You have been guarded by Future!';
+      document.getElementById('game-over').classList.remove('hidden');
+    }
+    return;
+  }
+
+  frameCount++;
+
+  if (target.active) {
+    const dx = target.x - plane.x;
+    const dy = target.y - plane.y;
+    plane.vx += dx * 0.08;
+    plane.vy += dy * 0.08;
+  }
+  plane.vx *= 0.88;
+  plane.vy *= 0.88;
+  plane.x += plane.vx;
+  plane.y += plane.vy;
+
+  const pad = 24;
+  if (plane.x < pad) { plane.x = pad; plane.vx = 0; }
+  if (plane.x > W - pad) { plane.x = W - pad; plane.vx = 0; }
+  if (plane.y < pad) { plane.y = pad; plane.vy = 0; }
+  if (plane.y > H - pad) { plane.y = H - pad; plane.vy = 0; }
+
+  const targetAngle = Math.atan2(plane.vy, Math.abs(plane.vx) + 3) * 0.7;
+  plane.angle += (targetAngle - plane.angle) * 0.12;
+
+  plane.trail.push({ x: plane.x - 22, y: plane.y });
+  if (plane.trail.length > 28) plane.trail.shift();
+
+  if (frameCount % 2 === 0) emitParticles(plane.x - 24, plane.y, 1, 'rgba(100,180,255,0.6)', 1.5);
+
+  // Speed scales with level — max level is 50
+  const levelFactor = Math.min(level, 50);
+  speed = 4.5 + levelFactor * 0.16 + cash * 0.0005;
+  if (speed > 13) speed = 13;
+
+  // Spawn rates — level 1 already busy, gets intense by 50
+  const coinRate = Math.floor(Math.max(16, 45 - levelFactor * 0.6));
+  const taxRate = Math.floor(Math.max(30, 100 - levelFactor * 1.4));
+  const dogRate = Math.floor(Math.max(18, 55 - levelFactor * 0.75));
+
+  if (frameCount % coinRate === 0) spawnCoin();
+  if (frameCount % taxRate === 0) spawnTax();
+  if (frameCount % dogRate === 0) spawnDog();
+
+  // Steak cooldown
+  if (steakCooldown > 0) steakCooldown--;
+
+  // Move steaks
+  steaks.forEach(s => {
+    s.x += s.vx;
+    s.y += s.vy;
+    s.rot += 0.15;
+    s.vy *= 0.98;
+  });
+  steaks = steaks.filter(s => s.x < W + 30);
+
+  // Move entities
+  coins.forEach(c => c.x -= speed * 0.95);
+  coins = coins.filter(c => c.x > -30);
+
+  taxes.forEach(t => t.x -= speed * 0.7);
+  taxes = taxes.filter(t => t.x > -50);
+
+  // Move dogs — patterns, fleeing, eating
+  dogs.forEach(d => {
+    if (d.eating) {
+      d.eatTimer--;
+      if (d.eatTimer <= 0) {
+        d.fleeing = true;
+        d.eating = false;
+      }
+    } else if (d.fleeing) {
+      d.x += speed * 2.5 + 6;
+    } else {
+      d.x -= speed * (1.0 + levelFactor * 0.01);
+
+      // Vertical movement patterns
+      d.sinePhase += d.sineSpeed;
+      if (d.movePattern === 'sine') {
+        d.y = d.originY + Math.sin(d.sinePhase) * d.sineAmp;
+      } else if (d.movePattern === 'diagonal') {
+        d.y += d.vyBase;
+      } else if (d.movePattern === 'zigzag') {
+        d.y = d.originY + ((Math.abs((d.sinePhase % (Math.PI * 2)) - Math.PI) / Math.PI) * 2 - 1) * d.sineAmp;
+      }
+
+      // Keep dogs on screen vertically
+      if (d.y < 30) { d.y = 30; d.vyBase = Math.abs(d.vyBase); d.originY = 30 + d.sineAmp; }
+      if (d.y > H - 30) { d.y = H - 30; d.vyBase = -Math.abs(d.vyBase); d.originY = H - 30 - d.sineAmp; }
+    }
+  });
+  dogs = dogs.filter(d => {
+    if (d.fleeing) return d.x < W + 200;
+    return d.x > -d.r * 3;
+  });
+
+  // Steak-dog collisions
+  for (let si = steaks.length - 1; si >= 0; si--) {
+    const s = steaks[si];
+    for (let di = dogs.length - 1; di >= 0; di--) {
+      const d = dogs[di];
+      if (d.eating || d.fleeing || d.chomping) continue;
+      const dx = s.x - d.x, dy = s.y - d.y;
+      if (Math.sqrt(dx * dx + dy * dy) < d.r + 12) {
+        // Dog catches the steak!
+        d.eating = true;
+        d.eatTimer = 30; // pause to eat ~0.5s
+        d.chomping = true; // show chomp mouth while eating
+        const name = d.type === 'corgi' ? 'Bowser' : d.type === 'cow-pitbull' ? 'Chipper' : 'Future';
+        addPopup(d.x, d.y - 20, `${name} loves it!`, '#ffaa44', 18);
+        emitParticles(d.x, d.y, 8, '#e8923a', 3);
+        playDogEatSound();
+        steaks.splice(si, 1);
+        break;
+      }
+    }
+  }
+
+  particles.forEach(p => { p.x += p.vx; p.y += p.vy; p.life -= p.decay; });
+  particles = particles.filter(p => p.life > 0);
+
+  popups.forEach(p => { p.life -= 1 / p.duration; });
+  popups = popups.filter(p => p.life > 0);
+
+  // Collisions — coins
+  for (let i = coins.length - 1; i >= 0; i--) {
+    const c = coins[i];
+    const dx = plane.x - c.x, dy = plane.y - c.y;
+    if (Math.sqrt(dx * dx + dy * dy) < c.r + 18) {
+      cash += c.value;
+      document.getElementById('score-val').textContent = '$' + cash.toFixed(2);
+      addPopup(c.x, c.y - 10, 'CHA-CHING!', c.value === 10 ? '#ffd700' : '#44ff66', 20);
+      addPopup(c.x, c.y + 14, '+$' + c.value.toFixed(2), c.value === 10 ? '#ffd700' : '#44ff66', 16);
+      emitParticles(c.x, c.y, 8, c.color, 4);
+      playChaChingSound();
+      coins.splice(i, 1);
+      checkLevel();
+    }
+  }
+
+  // Collisions — taxes
+  for (let i = taxes.length - 1; i >= 0; i--) {
+    const t = taxes[i];
+    const dx = plane.x - t.x, dy = plane.y - t.y;
+    if (Math.sqrt(dx * dx + dy * dy) < t.r + 14) {
+      cash -= 3.50;
+      if (cash < 0) cash = 0;
+      document.getElementById('score-val').textContent = '$' + cash.toFixed(2);
+      addPopup(t.x, t.y - 10, "TAXES!", '#ff4444', 22);
+      addPopup(t.x, t.y + 14, '-$3.50', '#ff6666', 16);
+      emitParticles(t.x, t.y, 6, '#ff4444', 3);
+      playTaxSound();
+      taxes.splice(i, 1);
+    }
+  }
+
+  // Collisions — dogs (skip eating/fleeing dogs)
+  for (const d of dogs) {
+    if (d.chomping || d.eating || d.fleeing) continue;
+    const dx = plane.x - d.x, dy = plane.y - d.y;
+    if (Math.sqrt(dx * dx + dy * dy) < d.r + 12) {
+      d.chomping = true;
+      chompDog = d.type;
+      chompTimer = 40; // ~0.66 seconds of chomp animation
+      playChompSound();
+      emitParticles(plane.x, plane.y, 15, '#ff8844', 4);
+      return;
+    }
+  }
+}
+
+function gameLoop() {
+  ctx.fillStyle = '#04060f';
+  ctx.fillRect(0, 0, W, H);
+
+  drawNebulae();
+  drawStars();
+
+  if (running) update();
+
+  drawCoins();
+  drawTaxes();
+  drawDogs();
+  drawSteaks();
+  drawTrail();
+  drawTether();
+  drawPlane();
+  drawParticles();
+  drawPopups();
+  drawCursor();
+
+  requestAnimationFrame(gameLoop);
+}
+
+// ===== START / RESTART =====
+document.getElementById('start-btn').addEventListener('click', () => {
+  ensureAudio();
+  document.getElementById('start-screen').classList.add('hidden');
+  resetGame(); running = true;
+});
+
+document.getElementById('restart-btn').addEventListener('click', () => {
+  ensureAudio();
+  document.getElementById('game-over').classList.add('hidden');
+  resetGame(); running = true;
+});
+
+window.addEventListener('keydown', e => {
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    if (!document.getElementById('start-screen').classList.contains('hidden')) document.getElementById('start-btn').click();
+    else if (!document.getElementById('game-over').classList.contains('hidden')) document.getElementById('restart-btn').click();
+  }
+  if (e.key === ' ' && !running) {
+    e.preventDefault();
+    if (!document.getElementById('start-screen').classList.contains('hidden')) document.getElementById('start-btn').click();
+    else if (!document.getElementById('game-over').classList.contains('hidden')) document.getElementById('restart-btn').click();
+  }
+});
+
+['start-btn', 'restart-btn'].forEach(id => {
+  document.getElementById(id).addEventListener('touchend', e => { e.preventDefault(); e.target.click(); }, { passive: false });
+});
+
+plane.x = W * 0.25; plane.y = H / 2;
+gameLoop();
+</script>
+</body>
+</html>
