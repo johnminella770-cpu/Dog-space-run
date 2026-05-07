@@ -1,4 +1,3 @@
-Finding how how easy it is to Vibe code, iterate and make corrections using claude. 
-Fun game featuring my families dogs in space where you can shoot steaks to keep them from eating the plane.
-Points acquried by collecting different $ signs or effectively evading a dog with a steak. 
-Got a good laugh.
+My first vibe-coded project. I described a paper airplane game in plain English and iterated with Claude to build something fun.
+ I learned how browser games work, how canvas graphics are drawn in real time, how Web Audio API synthesizes sound without any files, and how a 60fps game loop manages physics, collision detection, and particle systems. Deployed on Netlify the same afternoon I started
+ A canvas-based browser game built with vanilla HTML, CSS, and JavaScript — no frameworks, no libraries. Implements a 60fps game loop, real-time collision detection, procedurally generated asteroid and dog obstacle patterns, a Web Audio API sound engine, parallax star and galaxy background rendering, mouse and trackpad-style touch controls, and 50 levels of progressive difficulty scaling.
